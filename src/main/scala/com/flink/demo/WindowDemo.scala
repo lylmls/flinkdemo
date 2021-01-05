@@ -1,5 +1,6 @@
 package com.flink.demo
 
+import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.api.scala._
@@ -13,6 +14,11 @@ object WindowDemo {
     timeWindow(env)
 
     env.execute("window")
+  }
+
+  def eventProcess(env: StreamExecutionEnvironment) = {
+    env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
+
   }
 
   def timeWindow(env: StreamExecutionEnvironment) ={

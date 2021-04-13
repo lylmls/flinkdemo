@@ -31,7 +31,7 @@ object FlinkCEP {
       .map(d=>{
         val arr = d.split(",")
         OrderEvent(arr(0).toLong,arr(1),arr(2), arr(3).toLong)  //把数据读出来转换成想要的样例类类型
-      }).assignAscendingTimestamps(_.ts * 1000L)  //指定ts字段
+      }).assignAscendingTimestamps(_.ts * 1000)  //指定ts字段
       .keyBy(_.orderId) //按照订单id分组
 
 
@@ -43,7 +43,7 @@ object FlinkCEP {
     val orderPayPattern = Pattern
       .begin[OrderEvent]("create").where(_.eventType == "create")  //先出现一个订单创建的事件
       .followedBy("pay").where(_.eventType == "pay")            //后边再出来一个支付事件
-      .within(Time.minutes(15))                                //定义在15分钟以内，触发这2个事件
+      .within(Time.seconds(5))                                //定义在15分钟以内，触发这2个事件
 
     // 3、将pattern应用到流里面，进行模式检测
     val patternStream = CEP.pattern(orderEvnetStream, orderPayPattern)

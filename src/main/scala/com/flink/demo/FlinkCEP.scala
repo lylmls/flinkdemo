@@ -27,12 +27,18 @@ object FlinkCEP {
 
     // 1、从文件中读取数据
     val resource = getClass.getResource("/OrderLog.csv")
-    val orderEvnetStream = env.readTextFile(resource.getPath)
+    val stream = env.socketTextStream("10.1.2.59", 9999)
+    val orderEvnetStream = stream.map(d => {
+      val arr = d.split(",")
+      OrderEvent(arr(0).toLong, arr(1), arr(2), arr(3).toLong)
+    }).assignAscendingTimestamps(_.ts * 1000) //指定ts字段
+      .keyBy(_.orderId)
+/*    val orderEvnetStream = env.readTextFile(resource.getPath)
       .map(d=>{
         val arr = d.split(",")
         OrderEvent(arr(0).toLong,arr(1),arr(2), arr(3).toLong)  //把数据读出来转换成想要的样例类类型
       }).assignAscendingTimestamps(_.ts * 1000)  //指定ts字段
-      .keyBy(_.orderId) //按照订单id分组
+      .keyBy(_.orderId) //按照订单id分组*/
 
 
 
@@ -43,7 +49,7 @@ object FlinkCEP {
     val orderPayPattern = Pattern
       .begin[OrderEvent]("create").where(_.eventType == "create")  //先出现一个订单创建的事件
       .followedBy("pay").where(_.eventType == "pay")            //后边再出来一个支付事件
-      .within(Time.seconds(5))                                //定义在15分钟以内，触发这2个事件
+      .within(Time.seconds(10))                                //定义在15分钟以内，触发这2个事件
 
     // 3、将pattern应用到流里面，进行模式检测
     val patternStream = CEP.pattern(orderEvnetStream, orderPayPattern)
@@ -59,7 +65,7 @@ object FlinkCEP {
     )
 
     resultStream.print("pay")
-    resultStream.getSideOutput(orderTimeoutTag).print()
+    resultStream.getSideOutput(orderTimeoutTag).print("time out")
     env.execute(" order timeout monitor")
 
   }
